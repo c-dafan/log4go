@@ -1,0 +1,21 @@
+[
+  {
+    "enabled": true,
+    "Tag": "stdout",
+    "Type": "console",
+    "Level": "DEBUG"
+  },
+  {
+    "enabled": true,
+    "Tag": "file",
+    "Type": "file",
+    "Level": "DEBUG",
+    "filename": "test.log",
+    "format": "[%D %T] [%L] (%S) %M",
+    "rotate": true,
+    "maxsize": "0M",
+    "maxlines": "3",
+    "maxbackup": 3,
+    "daily": false
+  }
+]

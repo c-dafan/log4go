@@ -24,8 +24,8 @@
     <property name="format">[%D %T] [%L] (%S) %M</property>
     <property name="rotate">true</property> <!-- true enables log rotation, otherwise append -->
     <property name="maxsize">0M</property> <!-- \d+[KMG]? Suffixes are in terms of 2**10 -->
-    <property name="maxlines">5</property> <!-- \d+[KMG]? Suffixes are in terms of thousands -->
-    <property name="maxbackup">5</property>
+    <property name="maxlines">2</property> <!-- \d+[KMG]? Suffixes are in terms of thousands -->
+    <property name="maxbackup">3</property>
     <property name="daily">false</property> <!-- Automatically rotates when a log message is written after midnight -->
   </filter>
 </logging>

@@ -3,6 +3,7 @@
 package log4go
 
 import (
+	"encoding/json"
 	"encoding/xml"
 	"fmt"
 	"io/ioutil"
@@ -28,9 +29,158 @@ type xmlLoggerConfig struct {
 	Filter []xmlFilter `xml:"filter"`
 }
 
-// Load XML configuration; see examples/example.xml for documentation
 func (log Logger) LoadConfiguration(filename string) {
 	log.Close()
+	log.LoadXmlConfiguration(filename)
+}
+func (log Logger) LoadJsonConfiguration(filename string) {
+	// Open the configuration file
+	fd, err := os.Open(filename)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "LoadConfiguration: Error: Could not open %q for reading: %s\n", filename, err)
+		os.Exit(1)
+	}
+
+	contents, err := ioutil.ReadAll(fd)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "LoadConfiguration: Error: Could not read %q: %s\n", filename, err)
+		os.Exit(1)
+	}
+	//config := make([]map[string]interface{},10)
+	//var config []map[string]interface{}
+	config := new([]map[string]interface{})
+	if err = json.Unmarshal(contents, config); err != nil {
+		fmt.Fprintf(os.Stderr, "LoadConfiguration: Error: Could not parse json configuration in %q: %s\n", filename, err)
+		os.Exit(1)
+	}
+	for _, configMap := range *config {
+		var filt LogWriter
+		var lvl Level
+		bad, good, enabled := false, true, false
+		enabled = configMap["enabled"].(bool)
+		if len(configMap["Tag"].(string)) == 0 {
+			fmt.Fprintf(os.Stderr, "LoadConfiguration: Error: Required child <%s> for filter missing in %s\n", "tag", filename)
+			bad = true
+		}
+		if len(configMap["Type"].(string)) == 0 {
+			fmt.Fprintf(os.Stderr, "LoadConfiguration: Error: Required child <%s> for filter missing in %s\n", "type", filename)
+			bad = true
+		}
+		if len(configMap["Level"].(string)) == 0 {
+			fmt.Fprintf(os.Stderr, "LoadConfiguration: Error: Required child <%s> for filter missing in %s\n", "level", filename)
+			bad = true
+		}
+		switch configMap["Level"].(string) {
+		case "FINEST":
+			lvl = FINEST
+		case "FINE":
+			lvl = FINE
+		case "DEBUG":
+			lvl = DEBUG
+		case "TRACE":
+			lvl = TRACE
+		case "INFO":
+			lvl = INFO
+		case "WARNING":
+			lvl = WARNING
+		case "ERROR":
+			lvl = ERROR
+		case "CRITICAL":
+			lvl = CRITICAL
+		default:
+			fmt.Fprintf(os.Stderr, "LoadConfiguration: Error: Required child <%s> for filter has unknown value in %s: %s\n", "level", filename, configMap["Level"].(string))
+			bad = true
+		}
+		if bad {
+			os.Exit(1)
+		}
+		switch configMap["Type"].(string) {
+		case "console":
+			filt, good = jsonToConsoleLogWriter(configMap["format"].(string), enabled)
+		case "file":
+			filt, good = JsonToFileLogWriter(configMap["filename"].(string), configMap, enabled)
+		}
+		if !good {
+			os.Exit(1)
+		}
+		// If we're disabled (syntax and correctness checks only), don't add to logger
+		if !enabled {
+			continue
+		}
+		log[configMap["Tag"].(string)] = &Filter{lvl, filt}
+	}
+}
+
+func jsonToConsoleLogWriter(format string, enabled bool) (*ConsoleLogWriter, bool) {
+
+	// If it's disabled, we're just checking syntax
+	if !enabled {
+		return nil, true
+	}
+
+	clw := NewConsoleLogWriter()
+	clw.SetFormat(format)
+
+	return clw, true
+}
+
+func JsonToFileLogWriter(filename string, props map[string]interface{}, enabled bool) (*FileLogWriter, bool) {
+	file := ""
+	format := "[%D %T] [%L] (%S) %M"
+	maxlines := 0
+	maxsize := 0
+	maxbackup := 999
+	daily := false
+	rotate := false
+
+	// Parse properties
+	for key, prop := range props {
+		switch key {
+		case "filename":
+			file = strings.Trim(prop.(string), " \r\n")
+		case "format":
+			format = strings.Trim(prop.(string), " \r\n")
+		case "maxlines":
+			maxlines = strToNumSuffix(strings.Trim(prop.(string), " \r\n"), 1000)
+		case "maxsize":
+			maxsize = strToNumSuffix(strings.Trim(prop.(string), " \r\n"), 1024)
+		case "daily":
+			daily = prop.(bool)
+		case "rotate":
+			rotate = prop.(bool)
+		case "maxbackup":
+			maxbackup = int(prop.(float64))
+		case "enabled":
+		case "Type":
+		case "Tag":
+		case "Level":
+		default:
+			fmt.Fprintf(os.Stderr, "LoadConfiguration: Warning: Unknown property \"%s\" for file filter in %s\n", key, filename)
+		}
+	}
+
+	// Check properties
+	if len(file) == 0 {
+		fmt.Fprintf(os.Stderr, "LoadConfiguration: Error: Required property \"%s\" for file filter missing in %s\n", "filename", filename)
+		return nil, false
+	}
+
+	// If it's disabled, we're just checking syntax
+	if !enabled {
+		return nil, true
+	}
+
+	flw := NewFileLogWriter(file, rotate)
+	flw.SetFormat(format)
+	flw.SetRotateLines(maxlines)
+	flw.SetRotateSize(maxsize)
+	flw.SetRotateDaily(daily)
+	flw.SetRotateMaxBackup(maxbackup)
+	return flw, true
+}
+
+// Load XML configuration; see examples/example.xml for documentation
+func (log Logger) LoadXmlConfiguration(filename string) {
 
 	// Open the configuration file
 	fd, err := os.Open(filename)
