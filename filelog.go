@@ -74,8 +74,7 @@ func NewFileLogWriter(fname string, rotate bool) *FileLogWriter {
 		fmt.Fprintf(os.Stderr, "FileLogWriter(%q): %s\n", w.filename, err)
 		return nil
 	}
-
-	go func() {
+	goFunc := func() {
 		defer func() {
 			if w.file != nil {
 				fmt.Fprint(w.file, FormatLogRecord(w.trailer, &LogRecord{Created: time.Now()}))
@@ -116,7 +115,8 @@ func NewFileLogWriter(fname string, rotate bool) *FileLogWriter {
 				w.maxsize_cursize += n
 			}
 		}
-	}()
+	}
+	go goFunc()
 
 	return w
 }

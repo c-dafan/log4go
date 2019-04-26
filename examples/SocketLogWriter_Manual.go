@@ -4,10 +4,11 @@ import (
 	"time"
 )
 
-import l4g "code.google.com/p/log4go"
+import l4g "github.com/c-dafan/log4go"
 
 func main() {
-	log := l4g.NewLogger()
+	log := make(l4g.Logger)
+	//log := l4g.NewLogger()
 	log.AddFilter("network", l4g.FINEST, l4g.NewSocketLogWriter("udp", "192.168.1.255:12124"))
 
 	// Run `nc -u -l -p 12124` or similar before you run this to see the following message
