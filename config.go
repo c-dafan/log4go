@@ -31,8 +31,18 @@ type xmlLoggerConfig struct {
 
 func (log Logger) LoadConfiguration(filename string) {
 	log.Close()
-	log.LoadXmlConfiguration(filename)
+	filenames := strings.Split(filename, ".")
+	Suffix := filenames[len(filenames)-1]
+	switch Suffix {
+	case "json":
+		log.LoadJsonConfiguration(filename)
+	case "xml":
+		log.LoadXmlConfiguration(filename)
+	default:
+		fmt.Fprintf(os.Stderr, "LoadConfiguration: Error: Could not load %q for suffix not json or xml\n", filename)
+	}
 }
+
 func (log Logger) LoadJsonConfiguration(filename string) {
 	// Open the configuration file
 	fd, err := os.Open(filename)

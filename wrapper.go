@@ -22,6 +22,14 @@ func LoadConfiguration(filename string) {
 	Global.LoadConfiguration(filename)
 }
 
+func LoadJsonConfiguration(filename string) {
+	Global.LoadJsonConfiguration(filename)
+}
+
+func LoadXmlConfiguration(filename string) {
+	Global.LoadXmlConfiguration(filename)
+}
+
 // Wrapper for (*Logger).AddFilter
 func AddFilter(name string, lvl Level, writer LogWriter) {
 	Global.AddFilter(name, lvl, writer)
