@@ -3,14 +3,15 @@
     "enabled": true,
     "Tag": "stdout",
     "Type": "console",
-    "Level": "DEBUG"
+    "Level": "DEBUG",
+    "format": "[%D %T] [%L] (%S) %M"
   },
   {
     "enabled": true,
     "Tag": "file",
     "Type": "file",
     "Level": "DEBUG",
-    "filename": "test.log",
+    "filename": "testlog.%Y%M%D%H.log",
     "format": "[%D %T] [%L] (%S) %M",
     "rotate": true,
     "maxsize": "0M",

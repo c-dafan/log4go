@@ -67,48 +67,80 @@ func (log Logger) LoadJsonConfiguration(filename string) {
 		var filt LogWriter
 		var lvl Level
 		bad, good, enabled := false, true, false
-		enabled = configMap["enabled"].(bool)
-		if len(configMap["Tag"].(string)) == 0 {
+		enabled, ok := configMap["enabled"].(bool)
+		if !ok {
+			fmt.Fprintf(os.Stderr, "LoadConfiguration: Error: Required child <%s> for filter missing in %s\n", "enabled", filename)
+			bad = true
+		}
+		if v, ok := configMap["Tag"]; ok && len(v.(string)) == 0 || !ok {
 			fmt.Fprintf(os.Stderr, "LoadConfiguration: Error: Required child <%s> for filter missing in %s\n", "tag", filename)
 			bad = true
 		}
-		if len(configMap["Type"].(string)) == 0 {
+		if v, ok := configMap["Type"]; ok && len(v.(string)) == 0 || !ok {
 			fmt.Fprintf(os.Stderr, "LoadConfiguration: Error: Required child <%s> for filter missing in %s\n", "type", filename)
 			bad = true
 		}
-		if len(configMap["Level"].(string)) == 0 {
+		if v, ok := configMap["Level"]; ok && len(v.(string)) == 0 || !ok {
 			fmt.Fprintf(os.Stderr, "LoadConfiguration: Error: Required child <%s> for filter missing in %s\n", "level", filename)
 			bad = true
 		}
-		switch configMap["Level"].(string) {
-		case "FINEST":
-			lvl = FINEST
-		case "FINE":
-			lvl = FINE
-		case "DEBUG":
-			lvl = DEBUG
-		case "TRACE":
-			lvl = TRACE
-		case "INFO":
-			lvl = INFO
-		case "WARNING":
-			lvl = WARNING
-		case "ERROR":
-			lvl = ERROR
-		case "CRITICAL":
-			lvl = CRITICAL
-		default:
-			fmt.Fprintf(os.Stderr, "LoadConfiguration: Error: Required child <%s> for filter has unknown value in %s: %s\n", "level", filename, configMap["Level"].(string))
+		level, ok := configMap["Level"]
+		if ok {
+			switch level.(string) {
+			case "FINEST":
+				lvl = FINEST
+			case "FINE":
+				lvl = FINE
+			case "DEBUG":
+				lvl = DEBUG
+			case "TRACE":
+				lvl = TRACE
+			case "INFO":
+				lvl = INFO
+			case "WARNING":
+				lvl = WARNING
+			case "ERROR":
+				lvl = ERROR
+			case "CRITICAL":
+				lvl = CRITICAL
+			default:
+				fmt.Fprintf(os.Stderr, "LoadConfiguration: Error: Required child <%s> for filter has unknown value in %s: %s\n", "level", filename, configMap["Level"].(string))
+				bad = true
+			}
+		} else {
+			fmt.Fprintf(os.Stderr, "LoadConfiguration: Error: Required child <%s> for filter has unknown value in %s\n", "level", filename)
 			bad = true
 		}
+
 		if bad {
 			os.Exit(1)
 		}
-		switch configMap["Type"].(string) {
-		case "console":
-			filt, good = jsonToConsoleLogWriter(configMap["format"].(string), enabled)
-		case "file":
-			filt, good = JsonToFileLogWriter(configMap["filename"].(string), configMap, enabled)
+		v, ok := configMap["Type"]
+		if ok {
+			switch v.(string) {
+			case "console":
+				v, ok := configMap["format"].(string)
+				if !ok {
+					fmt.Fprintf(os.Stderr, "LoadConfiguration: Error: Required child <%s> for filter has unknown value in %s\n", "format", filename)
+					good = false
+				} else {
+					filt, good = jsonToConsoleLogWriter(v, enabled)
+				}
+			case "file":
+				v, ok := configMap["filename"].(string)
+				if !ok {
+					fmt.Fprintf(os.Stderr, "LoadConfiguration: Error: Required child <%s> for filter has unknown value in %s\n", "format", filename)
+					good = false
+				} else {
+					filt, good = JsonToFileLogWriter(v, configMap, enabled)
+				}
+			default:
+				fmt.Fprintf(os.Stderr, "LoadConfiguration: Error: Required child <%s> for filter has unknown value in %s\n", "Type", filename)
+				good = false
+			}
+		} else {
+			fmt.Fprintf(os.Stderr, "LoadConfiguration: Error: Required child <%s> for filter has unknown value in %s\n", "Type", filename)
+			good = false
 		}
 		if !good {
 			os.Exit(1)
